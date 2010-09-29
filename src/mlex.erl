@@ -249,7 +249,7 @@ scan_token(ModBuffer, Buffer, Grammar) ->
 
 scan_token(Buf, G={Grammar, EndToken}) ->
   case nxtchr(Buf) of
-    Ret = {eof, Buf1} ->
+    _Ret = {eof, Buf1} ->
       {eof, {end_token(EndToken, lnum(Buf1)), Buf1}};
     {C, Buf1} ->
       case scan_token(C, Buf1, Grammar, [], [], []) of
@@ -293,7 +293,7 @@ scan_token(C, Buf, Grammar, Final, Pred, ScanChars) ->
 	  {C1, Buf1} = nxtchr(Buf),
 	  Pred1 = add_pred_pos(AddPred, Pred, buf_pos(Buf)),
 	  scan_token(C1, Buf1, Grammar1, Final1, Pred1, ScanChars1);
-	Other ->
+	_Other ->
 	  {_, F} = Final1,
 	  exit({bad_scan_type, F(class)})
       end
@@ -301,12 +301,12 @@ scan_token(C, Buf, Grammar, Final, Pred, ScanChars) ->
 
 scan1(Buf, Grammar, Tokens) ->
   case scan_token(Buf, Grammar) of
-    {eof, {Token, Buf1}} ->
+    {eof, {Token, _Buf1}} ->
       {ok, lists:reverse([Token|Tokens])};
     {ok, {Token, Buf1}} ->
       NxtTokens =
 	case Token of
-	  _ when list(Token) ->
+	  _ when is_list(Token) ->
 	    lists:reverse(Token) ++ Tokens;
 	  _ ->
 	    [Token|Tokens]
@@ -316,7 +316,7 @@ scan1(Buf, Grammar, Tokens) ->
       Error
   end.
 
-result_token(Buf, Grammar, {StatePos, FinalFun}, Pred, ScanChars) ->
+result_token(Buf, _Grammar, {StatePos, FinalFun}, Pred, ScanChars) ->
   Pos = get_pred_pos(FinalFun(final), Pred, StatePos),
   Buf1 = buf_pos(Buf, Pos),
   LNum = lnum(Buf1),
@@ -408,18 +408,18 @@ format_error(Error) ->
   lists:flatten(io_lib:format("~w", [Error])).
 
 
-format_char(C) when integer(C) ->
+format_char(C) when is_integer(C) ->
   io_lib:format("~c", [C]);
 format_char(C) ->
   io_lib:format("~w", [C]).
 
 format_expected({not_match, Exp}) ->
   "not " ++ format_expected(Exp);
-format_expected(C) when integer(C) ->
+format_expected(C) when is_integer(C) ->
   io_lib:format("~c;", [C]);
-format_expected({From, To}) when integer(From), integer(To) ->
+format_expected({From, To}) when is_integer(From), is_integer(To) ->
   io_lib:format("[~c-~c];", [From, To]);
-format_expected(Str) when list(Str) ->
+format_expected(Str) when is_list(Str) ->
   io_lib:format("~s;", [Str]);
 format_expected(Exp) ->
   io_lib:format("~w;", [Exp]).
@@ -448,9 +448,9 @@ nxtchr(C=$\r, Buf=#buf{chrs=Cs, mod=M, buf=B, pos=P}) ->
     _ ->
       {eol, Buf#buf{ints=[C, sol, C1], chrs=[eol|Cs], buf=B1, pos=P+1}}
   end;
-nxtchr(C=$\n, Buf=#buf{chrs=Cs, mod=M, buf=B, pos=P}) ->
+nxtchr(C=$\n, Buf=#buf{chrs=Cs, mod=_M, buf=_B, pos=P}) ->
   {eol, Buf#buf{ints=[C, sol], chrs=[eol|Cs], pos=P+1}};
-nxtchr(C, Buf=#buf{chrs=Cs, mod=M, buf=B, pos=P}) ->
+nxtchr(C, Buf=#buf{chrs=Cs, mod=_M, buf=_B, pos=P}) ->
   {C, Buf#buf{chrs=[C|Cs], pos=P+1}}.
 
 
@@ -471,13 +471,13 @@ forward(Buf=#buf{buf=B, ints=Ints, lnum=L, mod=M}) ->
     end,
   Buf#buf{pos=0, chrs=[], buf=B1, lnum=LN}.
 
-lnum(Buf=#buf{buf=B, mod=M, lnum=L}) ->
+lnum(_Buf=#buf{buf=_B, mod=_M, lnum=L}) ->
   L.
 
-buf_pos(Buf=#buf{pos=P}) ->
+buf_pos(_Buf=#buf{pos=P}) ->
   P.
 
-buf_pos(Buf=#buf{buf=B, mod=M, pos=P}, P) ->
+buf_pos(Buf=#buf{buf=_B, mod=_M, pos=P}, P) ->
   Buf;
 buf_pos(Buf, P) ->
   buf_pos(retchr(Buf), P).
@@ -501,7 +501,7 @@ grammar(Rules) ->
 %% @doc Compile list of <code>Rules</code> to internal grammar
 %% representation
 
-grammar(Rules, EndToken) when list(Rules) ->
+grammar(Rules, EndToken) when is_list(Rules) ->
   {compile_grammar('|'(compile_rules(Rules ++ internal_rules()))), EndToken}.
 
 compile_grammar(Grammar) ->
@@ -548,12 +548,12 @@ internal_rules() ->
 nmatch(M) ->
   nmatch(M, fun (I) -> I == M end).
 
-nmatch(Class, Test) when function(Test) ->
+nmatch(Class, Test) when is_function(Test) ->
   match({not_match, Class}, fun (I) -> not Test(I) end).
 
 match(M) ->
   match(M, fun (I) -> I == M end).
-match(Class, TestFun) when function(TestFun) ->
+match(Class, TestFun) when is_function(TestFun) ->
   Test = fun (class) -> Class;
 	     (final) -> false;
 	     (eof) -> false;
@@ -568,14 +568,14 @@ match(Class, TestFun) when function(TestFun) ->
 %% 
 %% @doc Match any character excluding <code>C</code>
 
-nc(C) when integer(C) ->
+nc(C) when is_integer(C) ->
   nmatch(C).
 
 %% @spec c(C::char()) -> function()
 %% 
 %% @doc Match character <code>C</code>
 
-c(C) when integer(C) ->
+c(C) when is_integer(C) ->
   match(C).
 
 %% @spec '.'() -> function()
@@ -589,25 +589,25 @@ c(C) when integer(C) ->
 %% 
 %% @doc Match string
 
-str(Str) when list(Str) ->
+str(Str) when is_list(Str) ->
   '@'([c(C) || C <- Str]).
 
 %% @spec ci(Str::string()) -> function()
 %% 
 %% @doc Match any character in list
 
-ci(Str) when list(Str) ->
+ci(Str) when is_list(Str) ->
   ci(Str, Str).
 
 %% @spec ci(From::char(), To::char()) -> function()
 %% 
 %% @doc Match any character in range <em>From-To</em> 
 
-ci(From, To) when integer(From),
-		  integer(To),
+ci(From, To) when is_integer(From),
+		  is_integer(To),
 		  From =< To ->
   Test =
-    fun (C) when integer(C),
+    fun (C) when is_integer(C),
 		 C >= From,
 		 C =< To ->
 	true;
@@ -615,7 +615,7 @@ ci(From, To) when integer(From),
 	false
     end,
   match({From, To}, Test);
-ci(Class, Str) when list(Str), list(Class) ->
+ci(Class, Str) when is_list(Str), is_list(Class) ->
   Test =
     fun (C) -> lists:member(C, Str) end,
   match(Class, Test).
@@ -631,11 +631,11 @@ cni(Str) ->
 %% 
 %% @doc Match any character excluding chars in range <em>From-To</em> 
 
-cni(From, To) when integer(From),
-		   integer(To),
+cni(From, To) when is_integer(From),
+		   is_integer(To),
 		   From =< To ->
   Test =
-    fun (C) when integer(C),
+    fun (C) when is_integer(C),
 		 C >= From,
 		 C =< To ->
 	true;
@@ -643,7 +643,7 @@ cni(From, To) when integer(From),
 	false
     end,
   nmatch({From, To}, Test);
-cni(Class, Str) when list(Str), list(Class) ->
+cni(Class, Str) when is_list(Str), is_list(Class) ->
   Test = fun (C) -> lists:member(C, Str) end,
   nmatch(Class, Test).
 
@@ -665,7 +665,7 @@ eol(Node) ->
 %% 
 %% @doc Regexps concatenation
 
-'@'(Nodes) when list(Nodes) ->
+'@'(Nodes) when is_list(Nodes) ->
   fun (D) ->
       {Ps, D1} = tree_compile(Nodes, D),
       tree_node(cat, Ps, D1)
@@ -675,7 +675,7 @@ eol(Node) ->
 %% 
 %% @doc Match any regexp from list
 
-'|'(Nodes) when list(Nodes) ->
+'|'(Nodes) when is_list(Nodes) ->
   fun (D) ->
       {Ps, D1} = tree_compile(Nodes, D),
       tree_node('|', Ps, D1)
@@ -685,21 +685,21 @@ eol(Node) ->
 %% 
 %% @doc Match one or more appearances of regexp
 
-'+'(Node) when function(Node) ->
+'+'(Node) when is_function(Node) ->
   '@'([Node, '*'(Node)]).
 
 %% @spec '?'(Node::function()) -> function()
 %% 
 %% @doc Match one or zero appearances of regexp
 
-'?'(Node) when function(Node) ->
+'?'(Node) when is_function(Node) ->
   '|'([Node, e()]).
 
 %% @spec '*'(Node::function()) -> function()
 %% 
 %% @doc Match zero or more appearances of regexp
 
-'*'(Node) when function(Node) ->
+'*'(Node) when is_function(Node) ->
   fun (D) ->
       {P, D1} = Node(D),
       tree_node('*', P, D1)
@@ -709,15 +709,15 @@ eol(Node) ->
 %% 
 %% @doc Match from <em>From</em> to <em>To</em> appearances of regexp
 
-btw(From, To, Node) when integer(From),
-			 integer(To),
+btw(From, To, Node) when is_integer(From),
+			 is_integer(To),
 			 From =< To,
 			 From > 0 ->
   btw(From, To, Node, []).
 
-btw(From, To, Node, [SQ]) when To < From ->
+btw(From, To, _Node, [SQ]) when To < From ->
   SQ;
-btw(From, To, Node, SQ) when To < From ->
+btw(From, To, _Node, SQ) when To < From ->
   '|'(SQ);
 btw(From, To=1, Node, SQ) ->
   btw(From, To-1, Node, [Node|SQ]);
@@ -797,19 +797,19 @@ class_intersect1(_, {not_match, _}) ->
   true;
 class_intersect1(C, C) ->
   true;
-class_intersect1(C, Str) when integer(C), list(Str) ->
+class_intersect1(C, Str) when is_integer(C), is_list(Str) ->
   lists:member(C, Str);
-class_intersect1(C, {From, To}) when integer(C) ->
+class_intersect1(C, {From, To}) when is_integer(C) ->
   (C >= From) and (C =< To);
-class_intersect1(Str1, Str2) when list(Str1), list(Str2) ->
+class_intersect1(Str1, Str2) when is_list(Str1), is_list(Str2) ->
   lists:any(fun (E) ->
 		lists:member(E, Str2)
 	    end, Str1);
-class_intersect1(Str, {From, To}) when list(Str) -> 
+class_intersect1(Str, {From, To}) when is_list(Str) -> 
   lists:any(fun (E) ->
 		class_intersect1(E, {From, To})
 	    end, Str);
-class_intersect1({From1, To1}, {From2, To2}) ->
+class_intersect1({_From1, To1}, {From2, To2}) ->
   (From2 =< To1) and (To1 =< To2);
 class_intersect1(_, _) ->
   false.
@@ -836,7 +836,7 @@ dfa_st_exist(Name, D) ->
 %%		  St
 %%	      end).
 
-dfa_trans_add(St, [], DT) ->
+dfa_trans_add(_St, [], DT) ->
   DT;
 dfa_trans_add(St, [{Class, To}|Edges], DT) ->
   dfa_trans_add(St, Edges, dict_set(DT, {St, Class}, To)).
@@ -899,7 +899,7 @@ tree_node(cat, [Pos|Rest], {First, Last, Null}, D) ->
   tree_node(cat, Rest, {NxtFirst, NxtLast, NxtNull}, NxtD).
 
 new_pos(Class, Test, D) ->
-  {Name, NxtD} = add_pos(mk_dfa_pos(Test, Class, []), D).
+  {_Name, _NxtD} = add_pos(mk_dfa_pos(Test, Class, []), D).
 
 firstpos({First, _, _}) ->  
   First.
@@ -937,17 +937,17 @@ dfa_pos_get(Name, D) ->
 dfa_pos_set(Name, Data, D) ->
   dict_set(D, Name, Data).
 
-dfa_pos_class(P=#dfa_pos{class=Class}) ->
+dfa_pos_class(_P=#dfa_pos{class=Class}) ->
   Class.
 
-dfa_pos_fun(P=#dfa_pos{pfun=Fun}) ->
+dfa_pos_fun(_P=#dfa_pos{pfun=Fun}) ->
   Fun.
 
 dfa_pos_pred(Name, N, D) ->
   P = dfa_pos_get(Name, D),
   dfa_pos_set(Name, P#dfa_pos{pred=N}, D).
 
-dfa_pos_pred(P=#dfa_pos{pred=N}) ->
+dfa_pos_pred(_P=#dfa_pos{pred=N}) ->
   N.
 
 dfa_pos_follow(Name, Follow, D) ->
@@ -955,7 +955,7 @@ dfa_pos_follow(Name, Follow, D) ->
   dfa_pos_set(Name,
 	      P#dfa_pos{follow=lists:usort(dfa_pos_follow(P) ++ Follow)}, D).
 
-dfa_pos_follow(P=#dfa_pos{follow=Follow}) ->
+dfa_pos_follow(_P=#dfa_pos{follow=Follow}) ->
   Follow.
 
 %% Counter
@@ -971,7 +971,7 @@ dict_get(Dict, Name) ->
   gb_trees:get(Name, Dict).
 
 dict_set(Dict, Name, Val) ->
-  NewDict = gb_trees:enter(Name, Val, Dict).
+  _NewDict = gb_trees:enter(Name, Val, Dict).
 
 dict_exist(Dict, Name) ->
   gb_trees:is_defined(Name, Dict).

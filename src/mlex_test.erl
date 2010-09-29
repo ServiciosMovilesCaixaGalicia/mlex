@@ -231,14 +231,14 @@ scan(Buf, Grammar) ->
 scan_cc(Buf, Grammar) ->
   scan_cc(first_token(Buf, Grammar), Grammar, []).
 
-scan_cc({error, {_, Module, Error}}, Grammar, Tokens) ->
+scan_cc({error, {_, Module, Error}},_Grammar, _Tokens) ->
   Module:format_error(Error);
 scan_cc({eof, _}, _, Res) ->
   lists:reverse(Res);
 scan_cc({ok, {Token, Buf}}, Grammar, Tokens) ->
   NxtTokens =
     case Token of
-      AddTokens when list(AddTokens) ->
+      AddTokens when is_list(AddTokens) ->
 	lists:reverse(AddTokens) ++ Tokens;
       _ ->
 	[Token|Tokens]
@@ -252,7 +252,7 @@ next_token(Buf, Grammar) ->
   mlex:scan_token(Buf, Grammar).
 
 scan_file(FileName, Grammar) ->
-  Buf = file_to_buf(FileName),
+  _Buf = file_to_buf(FileName),
   scan(file_to_buf(FileName), Grammar).
 
 scan_string(Str, Grammar) ->
@@ -262,7 +262,7 @@ file_to_buf(FileName) ->
   {ok, Bin} = file:read_file(FileName),
   string_to_buf(Bin).
 
-string_to_buf(Bin) when binary(Bin) ->
+string_to_buf(Bin) when is_binary(Bin) ->
   string_to_buf(binary_to_list(Bin));
 string_to_buf(Str) ->
   mlex_str_buf:str_to_buf(Str).
@@ -273,7 +273,7 @@ yeec_token(Class, Line, Data) ->
 string_replace(Str, From, To) ->
   string_replace(Str, From, lists:reverse(To), length(From), []).
 
-string_replace([], From, _, _, Acc) ->
+string_replace([], _From, _, _, Acc) ->
   lists:reverse(Acc);
 string_replace(Str, From, To, FromLen, Acc) ->
   case lists:prefix(From, Str) of
@@ -285,10 +285,10 @@ string_replace(Str, From, To, FromLen, Acc) ->
 
 %% Test help funs
 
-process_tests(Tests) ->
-  lists:foreach(fun ({Fun, FunTests}) ->
-                    process_tests(Fun, FunTests)
-                end, Tests).
+%process_tests(Tests) ->
+%  lists:foreach(fun ({Fun, FunTests}) ->
+%                    process_tests(Fun, FunTests)
+%                end, Tests).
 
 process_tests(Fun, Tests) ->
   process_tests(Fun, Tests, 1).
@@ -297,12 +297,12 @@ process_tests(Fun, Tests) ->
 %% Msg        - test purpose
 %% Args       - [Arg]
 %% TrueResult - true result pattern
-process_tests(Fun, [], _) ->
+process_tests(_Fun, [], _) ->
   ok;
 process_tests(Fun, [Test|Tail], Num) ->
   {Msg, Args, ResPat} = Test,
   Status = case catch apply(Fun,Args) of
-             Res when function(ResPat) ->
+             Res when is_function(ResPat) ->
                case catch ResPat(Res) of
                  ok ->
                    [passed, ok];
