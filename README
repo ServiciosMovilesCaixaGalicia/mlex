@@ -1,0 +1,15 @@
+
+			MLex 1.0
+                        --------
+
+MicroLex is a simple DFA based lexical scanner.
+
+It supports mostly all frequently used lex regexps, predictive
+operator, long (default) and short regexps.
+
+See mlex.html(EDoc generated) for documentation
+
+Your comments and suggestions are welcome.
+
+Vladimir Sekissov
+svg@surnet.ru

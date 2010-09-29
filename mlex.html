@@ -1,0 +1,328 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module mlex</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css">
+</head>
+<body bgcolor="white">
+<h1>Module mlex</h1>
+<ul><li>
+<a href="#index">Function index</a></li><li>
+<a href="#exported">Exported functions</a></li><li>
+<a href="#types">Data Types</a></li></ul>
+
+<h2>Description</h2>
+MicroLex is a simple DFA based lexical scanner.
+ 
+  It supports mostly all frequently used lex regexps, predictive
+  operator, long (default) and short regexps. It works with Unix, DOS
+  and Mac files.
+ 
+  <h3>Grammar</h3>
+ 
+  <p>MicroLex grammar is a list of rules. Order is significant. If input
+  matches few rules the first in the list is chosen.</p>
+ 
+  <h4>Rules</h4>
+ 
+  <p>Rules have three forms:
+  <dl>
+    <dt><code>{Class, Regexp, FormatFun}</code></dt>
+      <dd>The longest string matched <code>Regexp</code> is chosen as
+      token string</dd>
+     <dt><code>{Class, Regexp, FormatFun, short}</code></dt>
+       <dd>The same as above but the shortest string matched Regexp is
+       chosen.</dd>
+     <dt><code>{Class, Regexp1, '/', Regexp2, FormatFun}</code></dt>
+       <dd>Predictive operator. Input matches
+       <code>Regexp1Regexp2</code> but only the part matched
+        <code>Regexp1</code> is chosen as token string and buffer
+        position points to the next char after it.</dd>
+     <dt><code>Class</code></dt>
+       <dd>token class</dd>
+     <dt><code>Regexp</code></dt>
+       <dd>regular expression</dd>
+     <dt><code>FormatFun</code></dt>
+       <dd><code>Fun(Class, Line, String) ->
+                     {error, Error} | Token</code></dd>
+     <dt><code>Line</code></dt>
+       <dd>current line in input stream</dd>
+     <dt><code>String</code></dt>
+        <dd>string matched <code>Regexp</code></dd>
+  </dl>
+  </p>
+ 
+  <h4>Grammar Example</h4>
+ 
+  <p>Following simple grammar recognizes integers and floats
+  <pre>
+  %% Grammar
+ 
+  grammar() ->
+   [{ws,             ws(),             ?skip},
+    {float_num,      float_num(),      fun yeec_token/3},
+    {integer_num,    integer_num(),    fun yeec_token/3}].
+ 
+  ws() ->	ci(" \t\f").
+ 
+  %%Float
+  %%(+|-)?[0-9]+\.[0-9]+((E|e)(+|-)?[0-9]+)?
+  float_num() ->
+    '@'([integer_num(), c($.),'+'(digit()),'?'('@'([ci("Ee"), integer_num()]))]).
+ 
+  integer_num() ->
+    '@'(['?'(ci("+-")), '+'(digit())]).
+ 
+  digit() ->
+    ci($0, $9).
+ 
+  %% End of Grammar
+  </pre>
+  </p>
+ 
+  <h3>Regexps</h3>
+  <p>
+  <table>
+  <tr><th>MicroLex regexp</th><th>Lex analog</th></tr>
+  <tr><td><code>'@'([R1, R2, ...])</code></td><td>R1R2...    </td></tr>
+  <tr><td><code>'|'([R1, R2, ...])</code></td><td>R1|R2|...  </td></tr>
+  <tr><td><code>'*'(R)		</code></td><td>R*	   </td></tr>
+  <tr><td><code>'+'(R)		</code></td><td>R+	   </td></tr>
+  <tr><td><code>'?'(R)		</code></td><td>R?	   </td></tr>
+  <tr><td><code>'.'()		</code></td><td>.	   </td></tr>
+  <tr><td><code>sol(R)		</code></td><td>^R	   </td></tr>
+  <tr><td><code>eol(R)		</code></td><td>R$	   </td></tr>
+  <tr><td><code>btw(From, To, R)	</code></td><td>R{From, To}</td></tr>
+  <tr><td><code>c($a)		</code></td><td>a	   </td></tr>
+  <tr><td><code>nc($a)		</code></td><td>[^a]	   </td></tr>
+  <tr><td><code>ci($a, $z)	</code></td><td>[a-z]	   </td></tr>
+  <tr><td><code>ci("abc")		</code></td><td>[abc]	   </td></tr>
+  <tr><td><code>cni($a, $z)	</code></td><td>[^a-z]	   </td></tr>
+  <tr><td><code>cni("abc")	</code></td><td>[^abc]	   </td></tr>
+  <tr><td><code>str("abba")	</code></td><td>abba       </td></tr>
+  </table>
+  </p>
+ 
+  <h3>Scanner</h3>
+ 
+  <p>Scanner output is list of tokens. List ended with user defined end
+  token or <code>$end</code> for <code>yecc</code> compatibility.</p>
+ 
+  <p>Scanner can be used in batch mode when the whole input buffer is
+  processed and list of tokens is returned and in continuation style.</p>
+ 
+  <p>If rule's format function returns list it is appended to the output
+  list. Any other result is added to output list. Format function can
+  return empty list <code>[]</code> if you don't want rule result to be
+  present in the output.</p>
+ 
+  <h3>Errors</h3>
+ 
+  <p>On syntax error scanner returns tuple <code>{error, Error}</code>.
+  <dl>
+  <dt><code>Error</code></dt>
+    <dd><code>scanError()</code></dd>
+  </dl>
+  </p>
+ 
+
+<h2><a name="index">Function Index</a></h2>
+
+<table width="100%" border="1"><tr><th colspan="2" align="left">Exported Functions</th></tr>
+<tr><td><a href="#%2a-1">'*'/1</a></td><td>Match zero or more appearances of regexp.</td></tr>
+<tr><td><a href="#%2b-1">'+'/1</a></td><td>Match one or more appearances of regexp.</td></tr>
+<tr><td><a href="#.-0">'.'/0</a></td><td>Match any character excluding new line.</td></tr>
+<tr><td><a href="#%3f-1">'?'/1</a></td><td>Match one or zero appearances of regexp.</td></tr>
+<tr><td><a href="#%40-1">'@'/1</a></td><td>Regexps concatenation.</td></tr>
+<tr><td><a href="#btw-3">btw/3</a></td><td>Match from <em>From</em> to <em>To</em> appearances of regexp.</td></tr>
+<tr><td><a href="#c-1">c/1</a></td><td>Match character <code>C</code>.</td></tr>
+<tr><td><a href="#ci-1">ci/1</a></td><td>Match any character in list.</td></tr>
+<tr><td><a href="#ci-2">ci/2</a></td><td>Match any character in range <em>From-To</em>.</td></tr>
+<tr><td><a href="#cni-1">cni/1</a></td><td>Match any character excluding chars in list.</td></tr>
+<tr><td><a href="#cni-2">cni/2</a></td><td>Match any character excluding chars in range <em>From-To</em>.</td></tr>
+<tr><td><a href="#eol-1">eol/1</a></td><td>Match regexp at the end of line.</td></tr>
+<tr><td><a href="#format_error-1">format_error/1</a></td><td/></tr>
+<tr><td><a href="#grammar-1">grammar/1</a></td><td>The same as <code>grammar/2</code> but use default terminating
+   token <em>'$end'</em>.</td></tr>
+<tr><td><a href="#grammar-2">grammar/2</a></td><td>Compile list of <code>Rules</code> to internal grammar
+  representation.</td></tr>
+<tr><td><a href="#match-1">match/1</a></td><td/></tr>
+<tr><td><a href="#match-2">match/2</a></td><td/></tr>
+<tr><td><a href="#nc-1">nc/1</a></td><td>Match any character excluding <code>C</code>.</td></tr>
+<tr><td><a href="#nmatch-1">nmatch/1</a></td><td/></tr>
+<tr><td><a href="#nmatch-2">nmatch/2</a></td><td/></tr>
+<tr><td><a href="#scan-3">scan/3</a></td><td>Scans whole <code>Buffer</code> and returns list of tokens or
+      error.</td></tr>
+<tr><td><a href="#scan_token-2">scan_token/2</a></td><td>The same as <code>scan_token/3</code> but uses buffer returned
+  by <code>scan_token/2</code> or <code>scan_token/3</code>.</td></tr>
+<tr><td><a href="#scan_token-3">scan_token/3</a></td><td>Scans <code>Buffer</code> for the first recognized token
+      Must be called first.</td></tr>
+<tr><td><a href="#sol-1">sol/1</a></td><td>Match regexp at the start of line.</td></tr>
+<tr><td><a href="#str-1">str/1</a></td><td>Match string.</td></tr>
+<tr><td><a href="#%7c-1">'|'/1</a></td><td>Match any regexp from list.</td></tr>
+</table>
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3><a name="type-scanError">scanError(LineNum, Char, Expect, Str)</a> = {scan, LineNum, Char, Expect, Str}</h3>
+
+
+        <dl>
+        <dt><code>LineNum</code></dt>
+          <dd>line number</dd>
+        <dt><code>Char</code></dt>
+          <dd>first unmatched character</dd>
+        <dt><code>Expect</code></dt>
+          <dd>character classes grammar expecting at that point</dd>
+        <dt><code>Str</code></dt>
+          <dd>last recognized characters</dd>
+        </dl>
+  <p>It could be formatted to user friendly string with format_error/1.</p>
+
+<h2><a name="exported">Exported Functions</a></h2>
+
+<h3><a name="%2a-1">'*'/1</a></h3>
+
+<p><code>*(Node::function()) -> function()</code></p>
+<p>Match zero or more appearances of regexp</p>
+
+<h3><a name="%2b-1">'+'/1</a></h3>
+
+<p><code>+(Node::function()) -> function()</code></p>
+<p>Match one or more appearances of regexp</p>
+
+<h3><a name=".-0">'.'/0</a></h3>
+
+<p><code>.() -> function()</code></p>
+<p>Match any character excluding new line.</p>
+
+<h3><a name="%3f-1">'?'/1</a></h3>
+
+<p><code>?(Node::function()) -> function()</code></p>
+<p>Match one or zero appearances of regexp</p>
+
+<h3><a name="%40-1">'@'/1</a></h3>
+
+<p><code>@(Nodes::<a href="#type-list">list()</a>) -> function()</code></p>
+<p>Regexps concatenation</p>
+
+<h3><a name="btw-3">btw/3</a></h3>
+
+<p><code>btw(From, To, Node::function()) -> function()</code></p>
+<p>Match from <em>From</em> to <em>To</em> appearances of regexp</p>
+
+<h3><a name="c-1">c/1</a></h3>
+
+<p><code>c(C::char()) -> function()</code></p>
+<p>Match character <code>C</code></p>
+
+<h3><a name="ci-1">ci/1</a></h3>
+
+<p><code>ci(Str::string()) -> function()</code></p>
+<p>Match any character in list</p>
+
+<h3><a name="ci-2">ci/2</a></h3>
+
+<p><code>ci(From::char(), To::char()) -> function()</code></p>
+<p>Match any character in range <em>From-To</em></p>
+
+<h3><a name="cni-1">cni/1</a></h3>
+
+<p><code>cni(Str::string()) -> function()</code></p>
+<p>Match any character excluding chars in list</p>
+
+<h3><a name="cni-2">cni/2</a></h3>
+
+<p><code>cni(From::char(), To::char()) -> function()</code></p>
+<p>Match any character excluding chars in range <em>From-To</em></p>
+
+<h3><a name="eol-1">eol/1</a></h3>
+
+<p><code>eol(Node::function) -> function()</code></p>
+<p>Match regexp at the end of line</p>
+
+<h3><a name="format_error-1">format_error/1</a></h3>
+
+<p><code>format_error(Arg1) -> term()</code></p>
+<p> </p>
+
+<h3><a name="grammar-1">grammar/1</a></h3>
+
+<p><code>grammar(Rules::<a href="#type-list">list()</a>) -> <a href="#type-grammar">grammar()</a></code></p>
+<p>The same as <code>grammar/2</code> but use default terminating
+   token <em>'$end'</em>.
+ </p>
+<p>See also: <a href="#grammar-2"><code>grammar/2</code></a>.</p>
+
+<h3><a name="grammar-2">grammar/2</a></h3>
+
+<p><code>grammar(Rules::<a href="#type-list">list()</a>, EndToken::term()) -> <a href="#type-grammar">grammar()</a></code></p>
+<p>Compile list of <code>Rules</code> to internal grammar
+  representation</p>
+
+<h3><a name="match-1">match/1</a></h3>
+
+<p><code>match(Arg1) -> term()</code></p>
+<p> </p>
+
+<h3><a name="match-2">match/2</a></h3>
+
+<p><code>match(Arg1, Arg2) -> term()</code></p>
+<p> </p>
+
+<h3><a name="nc-1">nc/1</a></h3>
+
+<p><code>nc(C::char()) -> function()</code></p>
+<p>Match any character excluding <code>C</code></p>
+
+<h3><a name="nmatch-1">nmatch/1</a></h3>
+
+<p><code>nmatch(Arg1) -> term()</code></p>
+<p> </p>
+
+<h3><a name="nmatch-2">nmatch/2</a></h3>
+
+<p><code>nmatch(Arg1, Arg2) -> term()</code></p>
+<p> </p>
+
+<h3><a name="scan-3">scan/3</a></h3>
+
+<p><code>scan(ModBuffer::atom(), Buffer::term(), Grammar::<a href="#type-grammar">grammar()</a>) -> TokenList | {error, Error}<ul><li>TokenList = [term()]</li><li>Error = <a href="#type-scanError">scanError()</a> | term()</li></ul></code></p>
+<p>Scans whole <code>Buffer</code> and returns list of tokens or
+      error. See <code>mlex_str_buf.erl</code> for buffer module
+      example. <code>ModBuffer</code> is a buffer module name which
+      operates on <code>Buffer</code>.
+ </p>
+<p>See also: <a href="#grammar-1"><code>grammar/1</code></a>, <a href="#grammar-2"><code>grammar/2</code></a>.</p>
+
+<h3><a name="scan_token-2">scan_token/2</a></h3>
+
+<p><code>scan_token(Buf::term(), Grammar::<a href="#type-grammar">grammar()</a>) -> {eof, Cont} | {ok, Cont} | {error, Error}<ul><li>Cont = {Token | TokenList, NextBuffer}</li><li>TokenList = [Token]</li><li>Token = term()</li><li>NextBuffer = term()</li><li>Error = <a href="#type-scanError">scanError()</a> | term()</li></ul></code></p>
+<p>The same as <code>scan_token/3</code> but uses buffer returned
+  by <code>scan_token/2</code> or <code>scan_token/3</code>
+ </p>
+<p>See also: <a href="#scan-3"><code>scan/3</code></a>, <a href="#scan_token-3"><code>scan_token/3</code></a>.</p>
+
+<h3><a name="scan_token-3">scan_token/3</a></h3>
+
+<p><code>scan_token(ModBuffer::atom(), Buffer::term(), Grammar::<a href="#type-grammar">grammar()</a>) -> {eof, Cont} | {ok, Cont} | {error, Error}<ul><li>Cont = {Token | TokenList, NextBuffer}</li><li>TokenList = [Token]</li><li>Token = term()</li><li>NextBuffer = term()</li><li>EndToken = term()</li></ul></code></p>
+<p>Scans <code>Buffer</code> for the first recognized token
+      Must be called first. Next calls must use <code>scan_token/2</code>
+ </p>
+<p>See also: <a href="#scan-3"><code>scan/3</code></a>, <a href="#scan_token-3"><code>scan_token/3</code></a>.</p>
+
+<h3><a name="sol-1">sol/1</a></h3>
+
+<p><code>sol(Node::function) -> function()</code></p>
+<p>Match regexp at the start of line</p>
+
+<h3><a name="str-1">str/1</a></h3>
+
+<p><code>str(Str::string()) -> function()</code></p>
+<p>Match string</p>
+
+<h3><a name="%7c-1">'|'/1</a></h3>
+
+<p><code>|(Nodes::<a href="#type-list">list()</a>) -> function()</code></p>
+<p>Match any regexp from list</p></body>
+</html>
